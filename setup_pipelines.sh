@@ -2,6 +2,8 @@
 
 set -e -u -o pipefail
 
+PIPELINES=${@:-./pipelines/*/*.yml}
+
 ATC_URL=http://localhost:8080
 ATC_LOGIN=concourse
 ATC_PASS=changeme
@@ -16,7 +18,7 @@ login() {
 
 login
 
-for f in ./pipelines/*/*.yml; do
+for f in ${PIPELINES}; do
 	pipeline_name=${f}
 	pipeline_name=${pipeline_name%*/*.yml}
 	pipeline_name=${pipeline_name##*/}
