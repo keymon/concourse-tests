@@ -1,0 +1,43 @@
+resources:
+- name: myrepo
+  type: git
+  source:
+    uri: git@github.com:keymon/concourse-tests.git
+    branch: master
+    private_key: ((private-repo-key))
+
+- name: mypool
+  type: pool
+  source:
+    uri: git@github.com:keymon/concourse-tests.git
+    branch: pool
+    private_key: ((private-repo-key))
+    pool: lock
+
+jobs:
+- name: init
+  serial: true
+  plan:
+  - put: mypool
+    params: {acquire: true}
+  - get: myrepo
+    trigger: true
+
+- name: update_pipeline
+  serial: true
+  plan:
+  - get: mypool
+    passed: [init]
+  - get: myrepo
+    passed: [init]
+
+- name: release-lock
+  serial: true
+  plan:
+  - get: mypool
+  - put: mypool
+    params: {release: mypool}
+  - get: myrepo
+    trigger: true
+
+
