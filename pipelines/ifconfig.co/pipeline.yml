@@ -1,0 +1,44 @@
+resource_types:
+- name: smuggler
+  type: docker-image
+  source:
+    repository: redfactorlabs/concourse-smuggler-resource
+    tag: alpine
+
+resources:
+- name: ifconfig.co
+  type: smuggler
+  source:
+    smuggler_debug: true
+    refresh_frequency: 600
+    commands:
+      check: |
+        epoch="$(date +%s)"
+        if [ "$(( ${epoch} - 600 ))" -gt "${SMUGGLER_VERSION_ID:-0}" ]; then
+          echo "${epoch}" > ${SMUGGLER_OUTPUT_DIR}/versions
+        fi
+      in: |
+        current_ip="$(curl -qs ifconfig.co)"
+        echo "${current_ip}" > ${SMUGGLER_DESTINATION_DIR}/current_ip
+        echo "current_ip=${current_ip}" > ${SMUGGLER_OUTPUT_DIR}/metadata
+
+jobs:
+- name: some_job
+  plan:
+  - get: ifconfig.co
+  - task: print_the_ip
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+      inputs:
+      - name: ifconfig.co
+      run:
+        path: sh
+        args:
+        - -ec
+        - |
+          cat ifconfig.co/current_ip
+
